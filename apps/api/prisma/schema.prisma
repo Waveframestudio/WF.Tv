@@ -1,0 +1,237 @@
+// datasource y generator
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── ENUMS ────────────────────────────────────────────────────────────────────
+
+enum UserRole {
+  SUPER_ADMIN
+  ADMIN
+  VIEWER
+}
+
+enum VideoStatus {
+  UPLOADING
+  PROCESSING
+  READY
+  ERROR
+}
+
+enum UploadStatus {
+  PENDING
+  UPLOADING
+  COMPLETED
+  FAILED
+}
+
+enum ScreenStatus {
+  ONLINE
+  OFFLINE
+  SYNCING
+  ERROR
+}
+
+enum ElementType {
+  TEXT
+  PRICE
+  PROMOTION
+  LOGO
+}
+
+// ─── MODELS ───────────────────────────────────────────────────────────────────
+
+model User {
+  id             String       @id @default(cuid())
+  email          String       @unique
+  name           String
+  role           UserRole     @default(ADMIN)
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@map("users")
+}
+
+model Organization {
+  id        String     @id @default(cuid())
+  name      String
+  slug      String     @unique
+  logoUrl   String?
+  users     User[]
+  locations Location[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@map("organizations")
+}
+
+model Location {
+  id             String       @id @default(cuid())
+  name           String
+  address        String?
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  screens        Screen[]
+  playlists      Playlist[]
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@map("locations")
+}
+
+model Screen {
+  id             String       @id @default(cuid())
+  name           String
+  deviceId       String       @unique
+  locationId     String
+  location       Location     @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  status         ScreenStatus @default(OFFLINE)
+  lastSeenAt     DateTime?
+  currentVersion String?
+  resolution     String?
+  playbackLogs   PlaybackLog[]
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@map("screens")
+}
+
+model VideoAsset {
+  id               String            @id @default(cuid())
+  title            String
+  description      String?
+  storagePath      String            @unique  // path en Supabase Storage
+  publicUrl        String
+  thumbnailUrl     String?
+  duration         Float?
+  fileSize         Int?
+  mimeType         String
+  status           VideoStatus       @default(PROCESSING)
+  organizationId   String
+  uploadJobId      String?
+  uploadJob        UploadJob?        @relation(fields: [uploadJobId], references: [id])
+  overlayTemplates OverlayTemplate[]
+  playlistItems    PlaylistItem[]
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  @@map("video_assets")
+}
+
+model UploadJob {
+  id          String       @id @default(cuid())
+  fileName    String
+  fileSize    Int
+  mimeType    String
+  status      UploadStatus @default(PENDING)
+  progress    Int          @default(0)
+  errorMsg    String?
+  videoAssets VideoAsset[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@map("upload_jobs")
+}
+
+model Playlist {
+  id                String             @id @default(cuid())
+  name              String
+  description       String?
+  locationId        String
+  location          Location           @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  items             PlaylistItem[]
+  publishedVersions PublishedVersion[]
+  isActive          Boolean            @default(false)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  @@map("playlists")
+}
+
+model PlaylistItem {
+  id                String           @id @default(cuid())
+  playlistId        String
+  playlist          Playlist         @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+  videoAssetId      String
+  videoAsset        VideoAsset       @relation(fields: [videoAssetId], references: [id])
+  overlayTemplateId String?
+  overlayTemplate   OverlayTemplate? @relation(fields: [overlayTemplateId], references: [id])
+  order             Int
+  durationOverride  Float?
+  createdAt         DateTime         @default(now())
+
+  @@map("playlist_items")
+}
+
+model OverlayTemplate {
+  id            String           @id @default(cuid())
+  name          String
+  videoAssetId  String
+  videoAsset    VideoAsset       @relation(fields: [videoAssetId], references: [id], onDelete: Cascade)
+  elements      OverlayElement[]
+  playlistItems PlaylistItem[]
+  isDefault     Boolean          @default(false)
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  @@map("overlay_templates")
+}
+
+model OverlayElement {
+  id                String          @id @default(cuid())
+  overlayTemplateId String
+  overlayTemplate   OverlayTemplate @relation(fields: [overlayTemplateId], references: [id], onDelete: Cascade)
+  type              ElementType
+  content           String
+  xPercent          Float
+  yPercent          Float
+  widthPercent      Float
+  fontSize          Int             @default(24)
+  fontFamily        String          @default("Inter")
+  fontWeight        String          @default("bold")
+  color             String          @default("#FFFFFF")
+  backgroundColor   String?
+  backgroundOpacity Float           @default(0.7)
+  padding           Int             @default(8)
+  borderRadius      Int             @default(4)
+  textAlign         String          @default("left")
+  zIndex            Int             @default(1)
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  @@map("overlay_elements")
+}
+
+model PublishedVersion {
+  id          String   @id @default(cuid())
+  playlistId  String
+  playlist    Playlist @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+  version     Int
+  snapshot    Json
+  publishedBy String
+  note        String?
+  createdAt   DateTime @default(now())
+
+  @@unique([playlistId, version])
+  @@map("published_versions")
+}
+
+model PlaybackLog {
+  id           String    @id @default(cuid())
+  screenId     String
+  screen       Screen    @relation(fields: [screenId], references: [id], onDelete: Cascade)
+  videoAssetId String
+  startedAt    DateTime
+  endedAt      DateTime?
+  completed    Boolean   @default(false)
+  createdAt    DateTime  @default(now())
+
+  @@map("playback_logs")
+}

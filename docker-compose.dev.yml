@@ -1,0 +1,47 @@
+version: '3.8'
+
+# FoodScreen Manager — Docker Compose para desarrollo local
+# Supabase es SaaS, solo dockerizamos API y Admin
+
+services:
+  api:
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile
+      target: development
+    container_name: foodscreen-api
+    restart: unless-stopped
+    env_file:
+      - ./apps/api/.env
+    ports:
+      - '3001:3001'
+    volumes:
+      - ./apps/api:/app
+      - /app/node_modules
+    command: npm run start:dev
+    networks:
+      - foodscreen-network
+
+  admin:
+    build:
+      context: ./apps/admin
+      dockerfile: Dockerfile
+      target: development
+    container_name: foodscreen-admin
+    restart: unless-stopped
+    env_file:
+      - ./apps/admin/.env
+    ports:
+      - '3000:3000'
+    volumes:
+      - ./apps/admin:/app
+      - /app/node_modules
+    command: npm run dev -- --host
+    networks:
+      - foodscreen-network
+    depends_on:
+      - api
+
+networks:
+  foodscreen-network:
+    driver: bridge
