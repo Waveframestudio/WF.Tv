@@ -31,7 +31,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   login: async (email, password) => {
     set({ loading: true });
     try {
-      // 1. Autenticar en Supabase
+      // 1. Autenticar directamente en Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -39,13 +39,34 @@ export const useAuthStore = create<AuthState>((set) => ({
 
       if (authError) throw authError;
 
-      // 2. Traer información extendida del backend NestJS
-      const { data: userData } = await api.post('/auth/login', {
-        email,
-        password,
-      });
+      const supabaseUser = authData.user;
+      if (!supabaseUser) throw new Error('No se pudo obtener el usuario');
 
-      set({ user: userData.user });
+      // 2. Intentar traer datos extendidos del backend (opcional, no bloquea el login)
+      let orgName = 'Mi Organización';
+      let orgSlug = 'mi-organizacion';
+      try {
+        const { data: orgData } = await api.get('/organizations/me');
+        orgName = orgData?.name || orgName;
+        orgSlug = orgData?.slug || orgSlug;
+      } catch {
+        // El backend puede no estar disponible aún — usamos defaults
+        console.warn('Backend API no disponible, usando datos por defecto');
+      }
+
+      set({
+        user: {
+          id: supabaseUser.id,
+          email: supabaseUser.email || email,
+          name: supabaseUser.user_metadata?.name || email.split('@')[0],
+          role: 'ADMIN',
+          organization: {
+            id: 'local',
+            name: orgName,
+            slug: orgSlug,
+          },
+        },
+      });
     } finally {
       set({ loading: false });
     }
@@ -59,26 +80,36 @@ export const useAuthStore = create<AuthState>((set) => ({
   initialize: async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        // Cargar datos de la org/usuario desde NestJS
-        const { data: orgData } = await api.get('/organizations/me');
-        // Para simplificar mapeamos de la respuesta
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          set({
-            user: {
-              id: user.id,
-              email: user.email || '',
-              name: user.user_metadata.name || 'Admin',
-              role: 'ADMIN',
-              organization: orgData,
-            },
-          });
+      if (session?.user) {
+        const supabaseUser = session.user;
+
+        // Intentar enriquecer con datos del backend (opcional)
+        let orgName = 'Mi Organización';
+        let orgSlug = 'mi-organizacion';
+        try {
+          const { data: orgData } = await api.get('/organizations/me');
+          orgName = orgData?.name || orgName;
+          orgSlug = orgData?.slug || orgSlug;
+        } catch {
+          console.warn('Backend API no disponible en initialize, usando defaults');
         }
+
+        set({
+          user: {
+            id: supabaseUser.id,
+            email: supabaseUser.email || '',
+            name: supabaseUser.user_metadata?.name || supabaseUser.email?.split('@')[0] || 'Admin',
+            role: 'ADMIN',
+            organization: {
+              id: 'local',
+              name: orgName,
+              slug: orgSlug,
+            },
+          },
+        });
       }
     } catch (e) {
       console.error('Error al inicializar sesión', e);
-      await supabase.auth.signOut();
     } finally {
       set({ initialized: true });
     }

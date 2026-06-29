@@ -82,15 +82,11 @@ export class AuthService {
    * Usado por el JwtStrategy.
    */
   async validateToken(supabaseUserId: string) {
-    // Supabase guarda el uid en sub
-    const { data: supabaseUser } = await this.supabase.auth.admin.getUserById(supabaseUserId);
-    if (!supabaseUser?.user) return null;
-
-    const user = await this.prisma.user.findUnique({
-      where: { email: supabaseUser.user.email! },
+    // Buscamos directamente en nuestra DB por ID, ya que el ID del usuario
+    // en nuestra tabla "users" coincide con el UID de Supabase Auth.
+    return this.prisma.user.findUnique({
+      where: { id: supabaseUserId },
       include: { organization: true },
     });
-
-    return user;
   }
 }
