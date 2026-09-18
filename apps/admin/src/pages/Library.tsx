@@ -1,9 +1,8 @@
-import React, { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../lib/api';
-import { supabase } from '../lib/supabase';
 import { useAuthStore } from '../store/auth';
-import { Film, Upload, Plus, Trash2, Edit2, Play, X, Layers } from 'lucide-react';
+import { Film, Upload, Plus, Trash2, Edit2, Play, X } from 'lucide-react';
 
 interface VideoAsset {
   id: string;

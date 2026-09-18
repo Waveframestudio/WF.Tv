@@ -19,7 +19,7 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object AppModule {
 
-    private const val BASE_URL = "http://10.0.2.2:3001/api/" // IP local para emulador Android pointing a localhost NestJS
+    private const val DEFAULT_BASE_URL = "http://10.0.2.2:3001/api/"
 
     @Provides
     @Singleton
@@ -44,9 +44,16 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideApiClient(okHttpClient: OkHttpClient): ApiClient {
+    fun provideApiClient(
+        @ApplicationContext context: Context,
+        okHttpClient: OkHttpClient
+    ): ApiClient {
+        val prefs = context.getSharedPreferences("foodscreen_prefs", Context.MODE_PRIVATE)
+        val customUrl = prefs.getString("server_url", DEFAULT_BASE_URL)
+        val baseUrl = if (customUrl.isNullOrEmpty()) DEFAULT_BASE_URL else if (customUrl.endsWith("/")) customUrl else "$customUrl/"
+
         return Retrofit.Builder()
-            .baseUrl(BASE_URL)
+            .baseUrl(baseUrl)
             .client(okHttpClient)
             .addConverterFactory(GsonConverterFactory.create())
             .build()

@@ -1,20 +1,32 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { PrismaService } from '../../prisma/prisma.service';
 import { LoginDto } from './dto/login.dto';
 
 @Injectable()
 export class AuthService {
-  private supabase = createClient(
-    process.env.SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_KEY!,
-  );
+  private readonly logger = new Logger(AuthService.name);
+  private supabaseClient: SupabaseClient | null = null;
 
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService,
+    private configService: ConfigService,
   ) {}
+
+  private get supabase(): SupabaseClient {
+    if (!this.supabaseClient) {
+      const url = this.configService.get<string>('SUPABASE_URL') || 'https://placeholder.supabase.co';
+      const key = this.configService.get<string>('SUPABASE_SERVICE_KEY') || 'placeholder-key';
+      if (!url || url.includes('placeholder')) {
+        this.logger.warn('SUPABASE_URL o SUPABASE_SERVICE_KEY no están configurados con valores reales');
+      }
+      this.supabaseClient = createClient(url, key);
+    }
+    return this.supabaseClient;
+  }
 
   async login(loginDto: LoginDto) {
     // Autenticar contra Supabase Auth

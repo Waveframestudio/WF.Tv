@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, Outlet, Link, useLocation } from 'react-router-dom';
 import { useAuthStore } from './store/auth';
 
@@ -8,7 +8,6 @@ import {
   Film,
   MonitorPlay,
   Layers,
-  Settings,
   LogOut,
   ChevronRight,
 } from 'lucide-react';

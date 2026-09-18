@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import api from '../lib/api';
-import { Layers, Plus, Trash2, Video, ArrowUp, ArrowDown, Send, FileCode } from 'lucide-react';
+import { Layers, Plus, Trash2, Send } from 'lucide-react';
 
 interface PlaylistItem {
   id: string;
@@ -175,34 +175,42 @@ export default function Playlists() {
           </div>
 
           <div className="space-y-2">
-            {playlists.map((playlist) => (
-              <div
-                key={playlist.id}
-                onClick={() => setSelectedPlaylistId(playlist.id)}
-                className={`p-4 rounded-xl border cursor-pointer transition-all duration-200 ${
-                  selectedPlaylistId === playlist.id
-                    ? 'bg-slate-900 border-brand-500 text-white'
-                    : 'bg-slate-900/40 border-slate-800 text-slate-400 hover:bg-slate-900/60'
-                }`}
-              >
-                <div className="flex justify-between items-start">
-                  <h5 className="font-bold text-sm truncate max-w-[140px]">{playlist.name}</h5>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleToggleActive(playlist);
-                    }}
-                    className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${
-                      playlist.isActive ? 'bg-emerald-500/15 text-emerald-400' : 'bg-slate-800 text-slate-500'
-                    }`}
-                  >
-                    {playlist.isActive ? 'Activa' : 'Pausada'}
-                  </button>
-                </div>
-                <p className="text-xs text-slate-500 truncate mt-1">{playlist.description || 'Sin descripción'}</p>
-                <span className="text-[10px] text-slate-600 block mt-3 font-semibold uppercase">{playlist.items?.length || 0} items</span>
+            {loading ? (
+              <div className="flex h-32 items-center justify-center">
+                <div className="h-5 w-5 animate-spin rounded-full border-2 border-brand-500 border-t-transparent"></div>
               </div>
-            ))}
+            ) : playlists.length === 0 ? (
+              <p className="text-xs text-slate-500 text-center py-4">No hay playlists creadas aún.</p>
+            ) : (
+              playlists.map((playlist) => (
+                <div
+                  key={playlist.id}
+                  onClick={() => setSelectedPlaylistId(playlist.id)}
+                  className={`p-4 rounded-xl border cursor-pointer transition-all duration-200 ${
+                    selectedPlaylistId === playlist.id
+                      ? 'bg-slate-900 border-brand-500 text-white'
+                      : 'bg-slate-900/40 border-slate-800 text-slate-400 hover:bg-slate-900/60'
+                  }`}
+                >
+                  <div className="flex justify-between items-start">
+                    <h5 className="font-bold text-sm truncate max-w-[140px]">{playlist.name}</h5>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleToggleActive(playlist);
+                      }}
+                      className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${
+                        playlist.isActive ? 'bg-emerald-500/15 text-emerald-400' : 'bg-slate-800 text-slate-500'
+                      }`}
+                    >
+                      {playlist.isActive ? 'Activa' : 'Pausada'}
+                    </button>
+                  </div>
+                  <p className="text-xs text-slate-500 truncate mt-1">{playlist.description || 'Sin descripción'}</p>
+                  <span className="text-[10px] text-slate-600 block mt-3 font-semibold uppercase">{playlist.items?.length || 0} items</span>
+                </div>
+              ))
+            )}
           </div>
         </div>
       </div>
@@ -330,6 +338,21 @@ export default function Playlists() {
                   className="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-white focus:outline-none"
                   placeholder="ej. Menú Hamburguesas Noche"
                 />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Ubicación / Sucursal</label>
+                <select
+                  value={selectedLocationId}
+                  onChange={(e) => setSelectedLocationId(e.target.value)}
+                  className="w-full px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-white focus:outline-none"
+                >
+                  {locations.map((loc) => (
+                    <option key={loc.id} value={loc.id}>
+                      {loc.name}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div>

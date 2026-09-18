@@ -1,5 +1,6 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { createClient } from '@supabase/supabase-js';
+import { Injectable, NotFoundException, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateVideoDto } from './dto/create-video.dto';
 import { UpdateVideoDto } from './dto/update-video.dto';
@@ -8,12 +9,25 @@ const VIDEO_BUCKET = 'videos';
 
 @Injectable()
 export class VideosService {
-  private supabase = createClient(
-    process.env.SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_KEY!,
-  );
+  private readonly logger = new Logger(VideosService.name);
+  private supabaseClient: SupabaseClient | null = null;
 
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private configService: ConfigService,
+  ) {}
+
+  private get supabase(): SupabaseClient {
+    if (!this.supabaseClient) {
+      const url = this.configService.get<string>('SUPABASE_URL') || 'https://placeholder.supabase.co';
+      const key = this.configService.get<string>('SUPABASE_SERVICE_KEY') || 'placeholder-key';
+      if (!url || url.includes('placeholder')) {
+        this.logger.warn('SUPABASE_URL o SUPABASE_SERVICE_KEY no están configurados con valores reales');
+      }
+      this.supabaseClient = createClient(url, key);
+    }
+    return this.supabaseClient;
+  }
 
   /**
    * Genera una URL prefirmada para subir directamente a Supabase Storage.

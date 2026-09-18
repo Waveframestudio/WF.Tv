@@ -6,16 +6,21 @@ import { AuthService } from '../auth.service';
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(private authService: AuthService) {
-    const secret = process.env.SUPABASE_JWT_SECRET;
-    console.log('[JwtStrategy] Initialized. Secret length:', secret ? secret.length : 0);
+    const secret = process.env.SUPABASE_JWT_SECRET || 'placeholder-jwt-secret-at-least-32-chars-long';
+    console.log('[JwtStrategy] Initialized. Secret length:', secret.length);
     
     // Supabase firma los JWTs usando los bytes decodificados del secret en Base64.
-    // Si pasamos el string base64 directo, la firma no coincide y da 401.
-    const secretBuffer = secret ? Buffer.from(secret, 'base64') : null;
+    // Si el secret no es base64 válido o es de prueba, usamos Buffer.from(secret).
+    let secretBuffer: Buffer;
+    try {
+      secretBuffer = Buffer.from(secret, 'base64');
+    } catch {
+      secretBuffer = Buffer.from(secret);
+    }
 
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-      secretOrKey: secretBuffer!,
+      secretOrKey: secretBuffer,
       ignoreExpiration: false,
     });
   }

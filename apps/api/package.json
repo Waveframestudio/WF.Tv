@@ -5,7 +5,7 @@
   "private": true,
   "scripts": {
     "build": "nest build",
-    "dev": "pnpm run start:dev",
+    "dev": "nest start --watch",
     "start": "node dist/main",
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
@@ -14,7 +14,11 @@
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:push": "prisma db push",
+    "db:seed": "prisma db seed",
     "db:studio": "prisma studio"
+  },
+  "prisma": {
+    "seed": "ts-node prisma/seed.ts"
   },
   "dependencies": {
     "@nestjs/common": "^10.0.0",
@@ -40,6 +44,7 @@
     "@types/passport-jwt": "^4.0.0",
     "prisma": "^5.0.0",
     "ts-loader": "^9.5.0",
+    "ts-node": "^10.9.2",
     "typescript": "^5.4.0"
   }
 }

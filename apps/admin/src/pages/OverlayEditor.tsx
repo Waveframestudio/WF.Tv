@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../lib/api';
 import {
@@ -9,9 +9,6 @@ import {
   Save,
   ArrowLeft,
   Settings,
-  Type,
-  Maximize,
-  Move,
 } from 'lucide-react';
 
 interface OverlayElement {
@@ -130,12 +127,33 @@ export default function OverlayEditor() {
     }
   };
 
+  const [saving, setSaving] = useState(false);
+
   const handleSave = async () => {
+    if (!overlayId) return;
+    setSaving(true);
     try {
-      // Guardar todos los cambios locales. En el MVP actual guardamos al instante, pero agregamos este trigger como checkpoint de guardado final
-      alert('Cambios guardados con éxito en la nube');
+      // Sincronizar actualización en lote de la plantilla
+      await Promise.all(
+        elements.map((el) =>
+          api.patch(`/overlay-elements/${el.id}`, {
+            content: el.content,
+            xPercent: el.xPercent,
+            yPercent: el.yPercent,
+            widthPercent: el.widthPercent,
+            fontSize: el.fontSize,
+            color: el.color,
+            backgroundColor: el.backgroundColor,
+            backgroundOpacity: el.backgroundOpacity,
+          })
+        )
+      );
+      alert('Plantilla guardada con éxito en la nube ✨');
     } catch (e) {
-      console.error(e);
+      console.error('Error guardando plantilla', e);
+      alert('Ocurrió un error al guardar la plantilla');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -259,10 +277,11 @@ export default function OverlayEditor() {
         <div className="flex items-center space-x-2">
           <button
             onClick={handleSave}
-            className="flex items-center space-x-2 py-2 px-4 rounded-xl bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-200 text-sm font-medium transition-colors"
+            disabled={saving}
+            className="flex items-center space-x-2 py-2 px-4 rounded-xl bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-200 text-sm font-medium transition-colors disabled:opacity-50"
           >
             <Save className="h-4 w-4" />
-            <span>Guardar Plantilla</span>
+            <span>{saving ? 'Guardando...' : 'Guardar Plantilla'}</span>
           </button>
         </div>
       </div>

@@ -42,16 +42,17 @@ export const useAuthStore = create<AuthState>((set) => ({
       const supabaseUser = authData.user;
       if (!supabaseUser) throw new Error('No se pudo obtener el usuario');
 
-      // 2. Intentar traer datos extendidos del backend (opcional, no bloquea el login)
-      let orgName = 'Mi Organización';
-      let orgSlug = 'mi-organizacion';
+      // 2. Intentar traer datos extendidos del backend
+      let orgId = 'org-demo-001';
+      let orgName = 'FoodScreen Demo Org';
+      let orgSlug = 'foodscreen-demo';
       try {
         const { data: orgData } = await api.get('/organizations/me');
-        orgName = orgData?.name || orgName;
-        orgSlug = orgData?.slug || orgSlug;
+        if (orgData?.id) orgId = orgData.id;
+        if (orgData?.name) orgName = orgData.name;
+        if (orgData?.slug) orgSlug = orgData.slug;
       } catch {
-        // El backend puede no estar disponible aún — usamos defaults
-        console.warn('Backend API no disponible, usando datos por defecto');
+        console.warn('Backend API no disponible o respuesta incompleta, usando organización demo');
       }
 
       set({
@@ -61,7 +62,7 @@ export const useAuthStore = create<AuthState>((set) => ({
           name: supabaseUser.user_metadata?.name || email.split('@')[0],
           role: 'ADMIN',
           organization: {
-            id: 'local',
+            id: orgId,
             name: orgName,
             slug: orgSlug,
           },
@@ -83,15 +84,17 @@ export const useAuthStore = create<AuthState>((set) => ({
       if (session?.user) {
         const supabaseUser = session.user;
 
-        // Intentar enriquecer con datos del backend (opcional)
-        let orgName = 'Mi Organización';
-        let orgSlug = 'mi-organizacion';
+        // Intentar enriquecer con datos del backend
+        let orgId = 'org-demo-001';
+        let orgName = 'FoodScreen Demo Org';
+        let orgSlug = 'foodscreen-demo';
         try {
           const { data: orgData } = await api.get('/organizations/me');
-          orgName = orgData?.name || orgName;
-          orgSlug = orgData?.slug || orgSlug;
+          if (orgData?.id) orgId = orgData.id;
+          if (orgData?.name) orgName = orgData.name;
+          if (orgData?.slug) orgSlug = orgData.slug;
         } catch {
-          console.warn('Backend API no disponible en initialize, usando defaults');
+          console.warn('Backend API no disponible en initialize, usando organización demo');
         }
 
         set({
@@ -101,7 +104,7 @@ export const useAuthStore = create<AuthState>((set) => ({
             name: supabaseUser.user_metadata?.name || supabaseUser.email?.split('@')[0] || 'Admin',
             role: 'ADMIN',
             organization: {
-              id: 'local',
+              id: orgId,
               name: orgName,
               slug: orgSlug,
             },
